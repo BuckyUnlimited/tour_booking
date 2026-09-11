@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\SigninRequest;
+use App\Http\Requests\User\SignupRequest;
+use App\Http\Resources\User\UserResource;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -11,14 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    function signup(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6|max:20|confirmed'
-        ]);
-
+    function signup(SignupRequest $request){
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -27,16 +23,11 @@ class AuthController extends Controller
 
         return response([
             'message' => 'User sign up',
-            'user' => $user
+            'user' => new UserResource($user)
         ], 201);
     }
 
-    function signin(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'password' => 'required|string|min:6|max:20'
-        ]);
+    function signin(SigninRequest $request){
 
         $user = User::where('email', $request->email)->first();
 
@@ -50,12 +41,13 @@ class AuthController extends Controller
 
         return response([
             'message' => 'User sign in',
-            'user' => $user,
+            'user' => new UserResource($user),
             'token' => $token
         ], 200);
     }
 
-    function signout(Request $request){
+    function signout(Request $request)
+    {
         $user = $request->user();
 
         $user->currentAccessToken()->delete();
@@ -65,10 +57,11 @@ class AuthController extends Controller
         ], 200);
     }
 
-    function verify(Request $request){
+    function verify(Request $request)
+    {
         return response([
             'massage' => 'Token is valid',
-            'user' => $request->user()
+            'user' => new UserResource($request->user()),
         ], 200);
     }
 }

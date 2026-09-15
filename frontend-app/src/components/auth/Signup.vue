@@ -65,6 +65,14 @@
         <div class="register-text">
           Already have an account?<router-link :to="{ name: 'auth.signin' }" class="text-center"> Sign In</router-link>
         </div>
+        <div v-if="signedUpEmail" class="mt-3">
+          <p>Signed up with <strong>{{ signedUpEmail }}</strong></p>
+          <p class="mb-3">
+            Didn't receive the verification email?
+          </p>
+          <button @click="sendVerificationEmail" class="btn btn-secondary btn-block">Resend Verification
+            Email</button>
+        </div>
       </form>
     </div>
   </div>
@@ -72,8 +80,8 @@
 
 <script setup>
 import { useRouter } from "vue-router";
-import { reactive } from "vue";
-import { apiSignUp } from "@/functions/api/auth";
+import { reactive, ref } from "vue";
+import { apiSignUp, apiSendVerificationEmail } from "@/functions/api/auth";
 import { LoadingModal, MessageModal, CloseModal } from "@/functions/swal";
 const router = useRouter();
 
@@ -99,18 +107,17 @@ function resetAllState() {
 }
 
 async function signUp() {
+  resetSignedUpEmail();
   try {
     LoadingModal('Signing Up...');
     await apiSignUp(user);
+    signedUpEmail.value = user.email;
     resetAllState();
     return MessageModal({
       icon: "success",
       title: "Success",
       text: "Your account has been created successfully."
-    },
-      () => {
-        router.replace({ name: "auth.signin" });
-      });
+    });
   } catch (error) {
     const { response } = error;
     if (!response) {
@@ -127,6 +134,30 @@ async function signUp() {
     }
     return MessageModal({ icon: "error", title: "Error", text: data.message });
   }
+}
+
+const signedUpEmail = ref("");
+async function sendVerificationEmail() {
+  try {
+    LoadingModal('Requesting verification email...');
+    const response = await apiSendVerificationEmail(signedUpEmail.value);
+    const { data } = response;
+    return MessageModal({
+      icon: "success",
+      title: "Success",
+      text: data.message
+    });
+  } catch (error) {
+    const { response } = error;
+    if (!response) {
+      return MessageModal({ icon: "error", title: "Error", text: error.message });
+    }
+    const { data } = response;
+    return MessageModal({ icon: "error", title: "Error", text: data.message });
+  }
+}
+function resetSignedUpEmail() {
+  signedUpEmail.value = "";
 }
 </script>
 
